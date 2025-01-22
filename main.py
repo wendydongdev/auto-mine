@@ -9,6 +9,7 @@ from enum import Enum
 from PIL import ImageGrab
 import numpy as np
 import cv2
+from time import sleep
 
 # 定义操作模式
 class OperationMode(Enum):
@@ -233,7 +234,7 @@ def rotate_image(image, angle):
     rotated = cv2.warpAffine(image, rotation_matrix, (width, height), flags=cv2.INTER_LINEAR)
     return rotated
 
-def find_items_in_screen(template_path, threshold=0.75, try_threshold=0.65, angles=[0, 90, 180, 270]):
+def find_items_in_screen(template_path, threshold=0.75, try_threshold=0.65, angles=[0]):
     """在屏幕中寻找匹配的道具，支持多角度匹配"""
     print(f"\n开始识别模板: {template_path}")
     try:
@@ -245,9 +246,10 @@ def find_items_in_screen(template_path, threshold=0.75, try_threshold=0.65, angl
         
         screenshot = ImageGrab.grab(bbox=(left, top, right, bottom))
         screenshot = np.array(screenshot)
-        screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2BGR)
+        screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
         
         template = cv2.imread(template_path)
+        template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
         if template is None:
             print(f"错误: 无法读取模板文件 {template_path}")
             return [], False
@@ -258,7 +260,7 @@ def find_items_in_screen(template_path, threshold=0.75, try_threshold=0.65, angl
         all_points = []
         best_angle = None
         best_max_val = -1
-        
+
         for angle in angles:
             if not running:  # 检查是否需要停止
                 return [], False
@@ -371,14 +373,15 @@ def automate_picking():
                 for item_name, template_path in item_templates.items():
                     if not running:
                         break
-                        
+
                     print(f"\n正在扫描{item_name}...")
                     item_positions, is_confident = find_items_in_screen(
                         template_path, 
-                        threshold=0.75,  # 高可信度阈值
-                        try_threshold=0.5  # 尝试点击阈值
+                        threshold=0.90,  # 高可信度阈值
+                        try_threshold=0.90  # 尝试点击阈值
                     )
-                    
+                    sleep(1)
+
                     if item_positions:
                         found_items = True
                         for pos in item_positions:
